@@ -19,6 +19,16 @@ run setup
 
 use the script
 
+## Examples
+
+get the data from the car, train it, and upload the model bash to the car
+
+```bash
+./train.sh download foo # download car data to data/foo
+./train.sh run data/foo bar # train model bar from foo (models/bar)
+./train.sh upload bar
+```
+
 ## More
 
 see the help (and help config) command for more
