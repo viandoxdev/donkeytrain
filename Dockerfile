@@ -14,6 +14,4 @@ WORKDIR /home/mambauser/car
 CMD /bin/bash
 CMD bash -c 'python3 train.py --tubs ~/data --model models/model.h5'
 
-# TODO: cuda, use multistage docker and the cuda image to train on the gpu
-# idea: make the car, copy the data, then begin new stage on nvidia, copy
-# the car then train (will most likely break bc dependencies).
+# TODO: cuda
