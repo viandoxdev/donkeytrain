@@ -167,11 +167,31 @@ download() {
 	pass=$(config_get "pass")
 
 	check_command "scp"
+	check_command "ssh"
+	check_command "tar"
+
 	if command -v sshpass &>/dev/null; then
-		sshpass -p "$pass" scp -r "${user}@${ip}:${data_path}" "data/$1"
+		echo "${bright_green}compressing data"
+		sshpass -p "$pass" ssh "${user}@${ip}" -f "cd ~/mycar && tar cvzf ${data_path}.tar.gz $data_path"
+
+		echo "${bright_green}copying archive"
+		sshpass -p "$pass" scp -r "${user}@${ip}:${data_path}.tar.gz" "data/data.tar.gz"
+
+		echo "${bright_green}extracting archive"
+		tar xvf data/data.tar.gz -C data/
+		mv data/data "data/$1"
 	else
 		echo "${yellow}consider installing sshpass for automatic password entry (with config)"
-		scp -r "${user}@${ip}:${data_path}" "data/$1"
+
+		echo "${bright_green}compressing data"
+		ssh "${user}@${ip}" -f "cd ~/mycar && tar cvzf ${data_path}.tar.gz $data_path"
+
+		echo "${bright_green}copying archive"
+		scp -r "${user}@${ip}:${data_path}.tar.gz" "data/data.tar.gz"
+
+		echo "${bright_green}extracting archive"
+		tar xvf data/data.tar.gz -C data/
+		mv data/data "data/$1"
 	fi
 }
 
@@ -183,7 +203,7 @@ upload() {
 
 	check_command "scp"
 	if command -v sshpass &>/dev/null; then
-		sshpass -p "$pass" scp -r "models/$1" "${user}@${ip}:${models_path}"
+		sshpass -p "$pass" scp -r -v "models/$1" "${user}@${ip}:${models_path}"
 	else
 		echo "${yellow}consider installing sshpass for automatic password entry (with config)"
 		scp -r "models/$1" "${user}@${ip}:${models_path}"
