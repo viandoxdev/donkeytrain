@@ -85,20 +85,23 @@ help() {
 		"run"
 		"download"
 		"upload"
+		"video"
 		"help"
 	)
 	arguments=(
 		""
-		"data model-name "
+		"data-name model-name "
 		"data-name"
 		"model-name"
+		"data-name [framerate]"
 		"[about]"
 	)
 	descriptions=(
 		"run setup"
-		"train model on [data], will write to models/[model-name]"
+		"train model on data/[data-name], will write to models/[model-name]"
 		"download training data from pi to data/[data-name] (see help config)"
 		"upload model [model-name] to pi (see help config)"
+		"make video from data images at [framerate] fps, default is 20 (data/[data-name]/images)"
 		"shows this page"
 	)
 	
@@ -152,12 +155,18 @@ setup() {
 }
 
 run() {
-	# we know $1 is a directory
-	abs=$(cd "$1" && pwd -P || exit)
+	# we know data/$1 is a directory
+	abs=$(cd "data/$1" && pwd -P || exit)
 	mkdir -p "models/${2}"
 	# train
 	check_command "docker"
 	docker run -v "${abs}:/home/mambauser/data" -v "$(pwd -P)/models/${2}:/home/mambauser/car/models" donkey
+}
+
+video() {
+	check_command "ffmpeg"
+
+	ffmpeg -hide_banner -framerate "$2" -i data/"$1"/images/%d_cam_image_array_.jpg -vcodec libx264 -pix_fmt yuv420p data/"$1"/video.mp4 
 }
 
 download() {
@@ -215,12 +224,16 @@ arg_error() {
 	exit 1
 }
 
+# https://stackoverflow.com/a/61835747
+is_unum() { case $1 in '' | . | *[!0-9.]* | *.*.* ) return 1;; esac ;}
+
 case "$1" in
 	"setup")
 		setup
 		;;
 	"run")
-		[ -d "$2" ] || arg_error "$2" "no such directory"
+		[[ "$2" =~ ^[A-Za-z_0-9-]+$ ]] || arg_error "$2" "must match against /^[A-Za-z_0-9-]+$/"
+		[ -d "data/$2" ] || arg_error "$2" "data doesn't exist"
 		[[ "$3" =~ ^[A-Za-z_0-9-]+$ ]] || arg_error "$3" "must match against /^[A-Za-z_0-9-]+$/"
 		run "$2" "$3"
 		;;
@@ -234,6 +247,14 @@ case "$1" in
 		[ -d "models/$2" ] || arg_error "$2" "model doesn't exist"
 		config_check
 		upload "$2"
+		;;
+	"video")
+		[[ "$2" =~ ^[A-Za-z_0-9-]+$ ]] || arg_error "$2" "must match against /^[A-Za-z_0-9-]+$/"
+		[ -d "data/$2" ] || arg_error "$2" "data doesn't exist"
+		framerate="20"
+		[ -z "$3" ] || { if is_unum "$3"; then framerate="$3"; else arg_error "can't parse framerate"; fi; }
+
+		video "$2" "$framerate"
 		;;
 	"help")
 		case "$2" in
